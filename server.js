@@ -24,7 +24,24 @@ const __dirname = dirname(__filename);
 // Set up Google Sheets API
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const SPREADSHEET_ID = '1T4SgPawsMWdUkD22SvGbOKUsPQTiQOsBockfhfg9TOU'; // Replace with your Google Sheet ID
-const CREDENTIALS_PATH = path.resolve(__dirname, '/attendance-portal-procom-fce6f8a37155.json');; // Path to your credentials JSON file
+const CREDENTIALS_PATH = path.resolve(__dirname, 'attendance-portal-procom-4cbfede5d586.json'); // Path to your credentials JSON file
+
+console.log("Checking credentials file...");
+if (!fs.existsSync(CREDENTIALS_PATH)) {
+    throw new Error(`Credentials file not found at: ${CREDENTIALS_PATH}`);
+}
+
+try {
+    const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
+    console.log("Credentials file loaded successfully");
+    // Check if required fields exist
+    if (!credentials.client_email || !credentials.private_key) {
+        throw new Error('Credentials file is missing required fields');
+    }
+} catch (error) {
+    console.error("Error loading credentials:", error);
+    process.exit(1);
+}
 
 const auth = new google.auth.GoogleAuth({
   keyFile: CREDENTIALS_PATH,
@@ -76,24 +93,72 @@ app.post('/mark-attendance', async (req, res) => {
   
   const appendToGoogleSheet = async (participant) => {
     try {
-        console.log("Appending to Google Sheets:", participant);
-        const response = await sheets.spreadsheets.values.append({
+        // Add timestamp in a format Google Sheets can understand
+        const timestamp = new Date().toISOString();
+        
+        const requestParams = {
             spreadsheetId: SPREADSHEET_ID,
-            range: 'Sheet1!A:D',
+            range: 'Sheet1!A2:D',
             valueInputOption: 'RAW',
+            insertDataOption: 'INSERT_ROWS',
             requestBody: {
                 values: [
-                    [participant.competition, participant.leader, participant.team, participant.present ? 'Present' : 'Absent'],
+                    [
+                        timestamp,                    // Time Stamp
+                        participant.competition,      // Competition
+                        participant.leader,           // Leader
+                        participant.team,            // Team
+                    ],
                 ],
             },
-        });
-        console.log('Data appended successfully:', response.data);
+        };
+
+        console.log("Attempting to append with data:", requestParams.requestBody.values[0]);
+        
+        const response = await sheets.spreadsheets.values.append(requestParams);
+        
+        if (response.data.updates) {
+            console.log(`Successfully updated ${response.data.updates.updatedRows} rows`);
+            return true;
+        }
+        
+        return false;
     } catch (error) {
-        console.error('Error appending data to Google Sheets:', error.response?.data || error.message);
+        console.error('Error in appendToGoogleSheet:', error);
+        if (error.response) {
+            console.error('Error details:', error.response.data);
+        }
+        throw error;
     }
 };
 
-  
+app.get('/test-sheets', async (req, res) => {
+    try {
+        // First test if auth is working
+        const client = await auth.getClient();
+        console.log("Auth client obtained successfully");
+
+        // Then test if we can read the sheet
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'Attendance-Sheet!A1:D1',
+        });
+        
+        console.log("Sheet response:", response.data);
+        res.json({ 
+            success: true, 
+            headers: response.data.values[0],
+            auth: "Successfully authenticated"
+        });
+    } catch (error) {
+        console.error("Full error:", error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message,
+            details: error.response?.data || 'No additional details'
+        });
+    }
+});
 
 // API to export attendance to a new spreadsheet
 app.get('/export', (req, res) => {
