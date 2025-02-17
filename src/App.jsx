@@ -26,7 +26,7 @@ function App() {
 
   const getParticipants = async () => {
     try {
-      const res = await fetch('http://localhost:5000/participants');
+      const res = await fetch('https://procom-attendance-portal.onrender.com/participants');
       const data = await res.json();
       setParticipants(data);
       setFilteredParticipants(data); // Set initial filtered participants
@@ -37,7 +37,7 @@ function App() {
 
   const markAttendance = async (competition, leader, team) => {
     try {
-      const response = await fetch('http://localhost:5000/mark-attendance', {
+      const response = await fetch('https://procom-attendance-portal.onrender.com/mark-attendance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
