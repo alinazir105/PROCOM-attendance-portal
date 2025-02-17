@@ -11,7 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
-
+attendance-portal-procom-4cbfede5d586.json
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
