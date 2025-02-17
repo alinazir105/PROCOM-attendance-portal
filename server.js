@@ -74,28 +74,25 @@ app.post('/mark-attendance', async (req, res) => {
     res.json({ success: true });
   });
   
-const appendToGoogleSheet = async (participant) => {
+  const appendToGoogleSheet = async (participant) => {
     try {
-      const response = await sheets.spreadsheets.values.append({
-        spreadsheetId: SPREADSHEET_ID,
-        range: 'Sheet1!A:D', // Adjust the range as per your sheet's columns
-        valueInputOption: 'RAW',
-        requestBody: {
-          values: [
-            [
-              participant.competition,
-              participant.leader,
-              participant.team,
-              participant.present ? 'Present' : 'Absent',
-            ],
-          ],
-        },
-      });
-      console.log('Data appended successfully', response.data);
+        console.log("Appending to Google Sheets:", participant);
+        const response = await sheets.spreadsheets.values.append({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'Sheet1!A:D',
+            valueInputOption: 'RAW',
+            requestBody: {
+                values: [
+                    [participant.competition, participant.leader, participant.team, participant.present ? 'Present' : 'Absent'],
+                ],
+            },
+        });
+        console.log('Data appended successfully:', response.data);
     } catch (error) {
-      console.error('Error appending data to Google Sheets', error);
+        console.error('Error appending data to Google Sheets:', error.response?.data || error.message);
     }
-  };
+};
+
   
 
 // API to export attendance to a new spreadsheet
