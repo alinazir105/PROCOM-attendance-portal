@@ -24,7 +24,7 @@ const __dirname = dirname(__filename);
 // Set up Google Sheets API
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const SPREADSHEET_ID = '1T4SgPawsMWdUkD22SvGbOKUsPQTiQOsBockfhfg9TOU'; // Replace with your Google Sheet ID
-const CREDENTIALS_PATH = path.join(__dirname, '/attendance-portal-procom-fce6f8a37155.json');; // Path to your credentials JSON file
+const CREDENTIALS_PATH = path.resolve(__dirname, '/attendance-portal-procom-fce6f8a37155.json');; // Path to your credentials JSON file
 
 const auth = new google.auth.GoogleAuth({
   keyFile: CREDENTIALS_PATH,
