@@ -181,23 +181,27 @@ const updateGoogleSheet = async (participant) => {
   try {
       const timestamp = new Date().toISOString();
 
-      // Find the row in the sheet that corresponds to this participant
-      const range = 'Sheet1!A2:D';  // Define the range to look for the row
+      // Define the range to look for the row
+      const range = 'Sheet1!A2:D';  // Adjust to match the correct range
+      console.log('Searching for participant:', participant);
 
-      // Retrieve current data to find the participant's row
+      // Retrieve current data from the sheet
       const response = await sheets.spreadsheets.values.get({
           spreadsheetId: SPREADSHEET_ID,
           range: range,
       });
 
-      // Find the correct row index based on the participant's details
       const rows = response.data.values || [];
+      console.log('Current rows in sheet:', rows);
+
+      // Find the row index based on the participant's details
       const rowIndex = rows.findIndex(row =>
           row[1] === participant.competition && row[2] === participant.leader && row[3] === participant.team
       );
 
       if (rowIndex !== -1) {
-          const rowToUpdate = rowIndex + 2;  // Account for header row
+          const rowToUpdate = rowIndex + 2;  // Account for header row in the sheet
+          console.log(`Found participant at row ${rowToUpdate}, updating attendance.`);
 
           const updateRequestParams = {
               spreadsheetId: SPREADSHEET_ID,
@@ -215,9 +219,8 @@ const updateGoogleSheet = async (participant) => {
               },
           };
 
-          await sheets.spreadsheets.values.update(updateRequestParams);
-
-          console.log(`Updated attendance for participant: ${participant.team}`);
+          const updateResponse = await sheets.spreadsheets.values.update(updateRequestParams);
+          console.log('Update response:', updateResponse);
       } else {
           console.log('Participant not found in Google Sheets.');
       }
@@ -226,6 +229,7 @@ const updateGoogleSheet = async (participant) => {
       throw error;
   }
 };
+
 
 app.get('/test-sheets', async (req, res) => {
     try {
