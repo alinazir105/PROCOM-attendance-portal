@@ -31,7 +31,6 @@ function App() {
         throw new Error('Failed to fetch participants');
       }
       const data = await res.json();
-      console.log('Fetched participants:', data); // Debug log
       setParticipants(data);
       setFilteredParticipants(data);
       setError(null);
@@ -56,7 +55,6 @@ function App() {
         throw new Error('Failed to mark attendance');
       }
 
-      // Update local state immediately for better UX
       setParticipants(prevParticipants =>
         prevParticipants.map(p =>
           p.team === team && p.competition === competition && p.leader === leader
@@ -65,11 +63,40 @@ function App() {
         )
       );
 
-      // Still fetch fresh data from server to ensure consistency
       await getParticipants();
     } catch (error) {
       console.error('Error marking attendance:', error);
       setError('Failed to mark attendance. Please try again.');
+    }
+  };
+
+  const removeAttendance = async (competition, leader, team) => {
+    try {
+      setError(null);
+      const response = await fetch('https://procom-attendance-portal.onrender.com/remove-attendance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ competition, leader, team }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove attendance');
+      }
+
+      setParticipants(prevParticipants =>
+        prevParticipants.map(p =>
+          p.team === team && p.competition === competition && p.leader === leader
+            ? { ...p, present: false }
+            : p
+        )
+      );
+
+      await getParticipants();
+    } catch (error) {
+      console.error('Error removing attendance:', error);
+      setError('Failed to remove attendance. Please try again.');
     }
   };
 
@@ -97,7 +124,7 @@ function App() {
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 border-b">Competition</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 border-b">Leader Name</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 border-b">Team Name</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 border-b">Mark Attendance</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 border-b">Attendance</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -112,17 +139,21 @@ function App() {
                   <td className="px-6 py-4 text-sm text-gray-800">{participant.leader}</td>
                   <td className="px-6 py-4 text-sm text-gray-800">{participant.team}</td>
                   <td className="px-6 py-4">
-                    <button
-                      disabled={participant.present}
-                      onClick={() => markAttendance(participant.competition, participant.leader, participant.team)}
-                      className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors ${
-                        participant.present
-                          ? 'bg-green-500 cursor-not-allowed'
-                          : 'bg-blue-600 hover:bg-blue-700'
-                      }`}
-                    >
-                      {participant.present ? 'Present ✓' : 'Mark Attendance'}
-                    </button>
+                    {participant.present ? (
+                      <button
+                        onClick={() => removeAttendance(participant.competition, participant.leader, participant.team)}
+                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                      >
+                        Remove Attendance
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => markAttendance(participant.competition, participant.leader, participant.team)}
+                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                      >
+                        Mark Attendance
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
