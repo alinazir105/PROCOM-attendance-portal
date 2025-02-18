@@ -75,6 +75,29 @@ app.post('/mark-attendance', async (req, res) => {
     res.json({ success: true });
 });
 
+// API to remove attendance
+app.post('/remove-attendance', async (req, res) => {
+  const { competition, leader, team } = req.body;
+
+  // Remove the participant from the list by setting their "present" status to false
+  participants = participants.map((p) =>
+      p.team === team && p.competition === competition && p.leader === leader
+          ? { ...p, present: false }
+          : p
+  );
+
+  // Append to Google Sheets after updating the attendance
+  const participant = participants.find(
+      (p) => p.team === team && p.competition === competition && p.leader === leader
+  );
+  if (participant) {
+      await appendToGoogleSheet(participant);
+  }
+
+  res.json({ success: true });
+});
+
+
 const appendToGoogleSheet = async (participant) => {
     try {
         // Add timestamp in a format Google Sheets can understand
