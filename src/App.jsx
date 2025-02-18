@@ -70,35 +70,64 @@ function App() {
     }
   };
 
+  // const removeAttendance = async (competition, leader, team) => {
+  //   try {
+  //     setError(null);
+  //     const response = await fetch('https://procom-attendance-portal.onrender.com/remove-attendance', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({ competition, leader, team }),
+  //     });
+
+  //     if (!response.ok) {
+  //       throw new Error('Failed to remove attendance');
+  //     }
+
+  //     setParticipants(prevParticipants =>
+  //       prevParticipants.map(p =>
+  //         p.team === team && p.competition === competition && p.leader === leader
+  //           ? { ...p, present: false }
+  //           : p
+  //       )
+  //     );
+
+  //     await getParticipants();
+  //   } catch (error) {
+  //     console.error('Error removing attendance:', error);
+  //     setError('Failed to remove attendance. Please try again.');
+  //   }
+  // };
   const removeAttendance = async (competition, leader, team) => {
     try {
-      setError(null);
-      const response = await fetch('https://procom-attendance-portal.onrender.com/remove-attendance', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ competition, leader, team }),
-      });
+        setError(null);
+        const response = await fetch('https://procom-attendance-portal.onrender.com/remove-attendance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ competition, leader, team }),
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to remove attendance');
-      }
+        if (!response.ok) {
+            throw new Error('Failed to remove attendance');
+        }
 
-      setParticipants(prevParticipants =>
-        prevParticipants.map(p =>
-          p.team === team && p.competition === competition && p.leader === leader
-            ? { ...p, present: false }
-            : p
-        )
-      );
+        setParticipants(prevParticipants =>
+            prevParticipants.map(p =>
+                p.team === team && p.competition === competition && p.leader === leader
+                    ? { ...p, present: false }
+                    : p
+            )
+        );
 
-      await getParticipants();
+        await getParticipants();
     } catch (error) {
-      console.error('Error removing attendance:', error);
-      setError('Failed to remove attendance. Please try again.');
+        console.error('Error removing attendance:', error);
+        setError('Failed to remove attendance. Please try again.');
     }
-  };
+};
 
   return (
     <div className="p-8">

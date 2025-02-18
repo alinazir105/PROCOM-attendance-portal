@@ -76,6 +76,7 @@ app.post('/mark-attendance', async (req, res) => {
 });
 
 // API to remove attendance
+// API to remove attendance and delete from Google Sheets
 app.post('/remove-attendance', async (req, res) => {
   const { competition, leader, team } = req.body;
 
@@ -86,17 +87,66 @@ app.post('/remove-attendance', async (req, res) => {
           : p
   );
 
-  // Append to Google Sheets after updating the attendance
+  // Remove the participant from Google Sheets
   const participant = participants.find(
       (p) => p.team === team && p.competition === competition && p.leader === leader
   );
   if (participant) {
-      await appendToGoogleSheet(participant);
+      await deleteFromGoogleSheet(participant);
   }
 
   res.json({ success: true });
 });
 
+const deleteFromGoogleSheet = async (participant) => {
+  try {
+      // First, find the row to delete
+      const response = await sheets.spreadsheets.values.get({
+          spreadsheetId: SPREADSHEET_ID,
+          range: 'Sheet1!A2:D',
+      });
+
+      const rows = response.data.values;
+      const rowIndex = rows.findIndex(row =>
+          row[1] === participant.competition &&
+          row[2] === participant.leader &&
+          row[3] === participant.team
+      );
+
+      if (rowIndex === -1) {
+          console.log('Row not found in Google Sheets');
+          return false;
+      }
+
+      // Delete the row
+      await sheets.spreadsheets.batchUpdate({
+          spreadsheetId: SPREADSHEET_ID,
+          requestBody: {
+              requests: [
+                  {
+                      deleteDimension: {
+                          range: {
+                              sheetId: 0, // Assuming the data is in the first sheet
+                              dimension: 'ROWS',
+                              startIndex: rowIndex + 1, // +1 because Google Sheets API is 0-based
+                              endIndex: rowIndex + 2,
+                          },
+                      },
+                  },
+              ],
+          },
+      });
+
+      console.log(`Successfully deleted row ${rowIndex + 1}`);
+      return true;
+  } catch (error) {
+      console.error('Error in deleteFromGoogleSheet:', error);
+      if (error.response) {
+          console.error('Error details:', error.response.data);
+      }
+      throw error;
+  }
+};
 
 const appendToGoogleSheet = async (participant) => {
     try {
