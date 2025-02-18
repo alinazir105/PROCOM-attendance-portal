@@ -56,179 +56,89 @@ app.get('/participants', (req, res) => {
 });
 
 // API to mark attendance
-// app.post('/mark-attendance', async (req, res) => {
-//     const { competition, leader, team } = req.body;
-//     participants = participants.map((p) =>
-//         p.team === team && p.competition === competition && p.leader === leader
-//             ? { ...p, present: true }
-//             : p
-//     );
-
-//     // Append to Google Sheets after updating the attendance
-//     const participant = participants.find(
-//         (p) => p.team === team && p.competition === competition && p.leader === leader
-//     );
-//     if (participant) {
-//         await appendToGoogleSheet(participant);
-//     }
-
-//     res.json({ success: true });
-// });
-
-// // API to remove attendance
-// app.post('/remove-attendance', async (req, res) => {
-//   const { competition, leader, team } = req.body;
-
-//   // Remove the participant from the list by setting their "present" status to false
-//   participants = participants.map((p) =>
-//       p.team === team && p.competition === competition && p.leader === leader
-//           ? { ...p, present: false }
-//           : p
-//   );
-
-//   // Append to Google Sheets after updating the attendance
-//   const participant = participants.find(
-//       (p) => p.team === team && p.competition === competition && p.leader === leader
-//   );
-//   if (participant) {
-//       await appendToGoogleSheet(participant);
-//   }
-
-//   res.json({ success: true });
-// });
-
-
-// const appendToGoogleSheet = async (participant) => {
-//     try {
-//         // Add timestamp in a format Google Sheets can understand
-//         const timestamp = new Date().toISOString();
-
-//         const requestParams = {
-//             spreadsheetId: SPREADSHEET_ID,
-//             range: 'Sheet1!A2:D',
-//             valueInputOption: 'RAW',
-//             insertDataOption: 'INSERT_ROWS',
-//             requestBody: {
-//                 values: [
-//                     [
-//                         timestamp,                    // Time Stamp
-//                         participant.competition,      // Competition
-//                         participant.leader,           // Leader
-//                         participant.team,            // Team
-//                     ],
-//                 ],
-//             },
-//         };
-
-//         console.log("Attempting to append with data:", requestParams.requestBody.values[0]);
-
-//         const response = await sheets.spreadsheets.values.append(requestParams);
-
-//         if (response.data.updates) {
-//             console.log(`Successfully updated ${response.data.updates.updatedRows} rows`);
-//             return true;
-//         }
-
-//         return false;
-//     } catch (error) {
-//         console.error('Error in appendToGoogleSheet:', error);
-//         if (error.response) {
-//             console.error('Error details:', error.response.data);
-//         }
-//         throw error;
-//     }
-// };
-// API to mark attendance
 app.post('/mark-attendance', async (req, res) => {
-  const { competition, leader, team } = req.body;
-  participants = participants.map((p) =>
-      p.team === team && p.competition === competition && p.leader === leader
-          ? { ...p, present: true }
-          : p
-  );
+    const { competition, leader, team } = req.body;
+    participants = participants.map((p) =>
+        p.team === team && p.competition === competition && p.leader === leader
+            ? { ...p, present: true }
+            : p
+    );
 
-  const participant = participants.find(
-      (p) => p.team === team && p.competition === competition && p.leader === leader
-  );
-  if (participant) {
-      await updateGoogleSheet(participant);  // Update Google Sheet
-  }
+    // Append to Google Sheets after updating the attendance
+    const participant = participants.find(
+        (p) => p.team === team && p.competition === competition && p.leader === leader
+    );
+    if (participant) {
+        await appendToGoogleSheet(participant);
+    }
 
-  res.json({ success: true });
+    res.json({ success: true });
 });
 
 // API to remove attendance
 app.post('/remove-attendance', async (req, res) => {
   const { competition, leader, team } = req.body;
+
+  // Remove the participant from the list by setting their "present" status to false
   participants = participants.map((p) =>
       p.team === team && p.competition === competition && p.leader === leader
           ? { ...p, present: false }
           : p
   );
 
+  // Append to Google Sheets after updating the attendance
   const participant = participants.find(
       (p) => p.team === team && p.competition === competition && p.leader === leader
   );
   if (participant) {
-      await updateGoogleSheet(participant);  // Update Google Sheet
+      await appendToGoogleSheet(participant);
   }
 
   res.json({ success: true });
 });
 
-// Function to update Google Sheets (instead of appending)
-const updateGoogleSheet = async (participant) => {
-  try {
-      const timestamp = new Date().toISOString();
 
-      // Define the range to look for the row
-      const range = 'Sheet1!A2:D';  // Adjust to match the correct range
-      console.log('Searching for participant:', participant);
+const appendToGoogleSheet = async (participant) => {
+    try {
+        // Add timestamp in a format Google Sheets can understand
+        const timestamp = new Date().toISOString();
 
-      // Retrieve current data from the sheet
-      const response = await sheets.spreadsheets.values.get({
-          spreadsheetId: SPREADSHEET_ID,
-          range: range,
-      });
+        const requestParams = {
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'Sheet1!A2:D',
+            valueInputOption: 'RAW',
+            insertDataOption: 'INSERT_ROWS',
+            requestBody: {
+                values: [
+                    [
+                        timestamp,                    // Time Stamp
+                        participant.competition,      // Competition
+                        participant.leader,           // Leader
+                        participant.team,            // Team
+                    ],
+                ],
+            },
+        };
 
-      const rows = response.data.values || [];
-      console.log('Current rows in sheet:', rows);
+        console.log("Attempting to append with data:", requestParams.requestBody.values[0]);
 
-      // Find the row index based on the participant's details
-      const rowIndex = rows.findIndex(row =>
-          row[1] === participant.competition && row[2] === participant.leader && row[3] === participant.team
-      );
+        const response = await sheets.spreadsheets.values.append(requestParams);
 
-      if (rowIndex !== -1) {
-          const rowToUpdate = rowIndex + 2;  // Account for header row in the sheet
-          console.log(`Found participant at row ${rowToUpdate}, updating attendance.`);
+        if (response.data.updates) {
+            console.log(`Successfully updated ${response.data.updates.updatedRows} rows`);
+            return true;
+        }
 
-          const updateRequestParams = {
-              spreadsheetId: SPREADSHEET_ID,
-              range: `Sheet1!A${rowToUpdate}:D${rowToUpdate}`,
-              valueInputOption: 'RAW',
-              requestBody: {
-                  values: [
-                      [
-                          timestamp,                    // Time Stamp
-                          participant.competition,      // Competition
-                          participant.leader,           // Leader
-                          participant.team,             // Team
-                      ],
-                  ],
-              },
-          };
-
-          const updateResponse = await sheets.spreadsheets.values.update(updateRequestParams);
-          console.log('Update response:', updateResponse);
-      } else {
-          console.log('Participant not found in Google Sheets.');
-      }
-  } catch (error) {
-      console.error('Error updating Google Sheet:', error);
-      throw error;
-  }
+        return false;
+    } catch (error) {
+        console.error('Error in appendToGoogleSheet:', error);
+        if (error.response) {
+            console.error('Error details:', error.response.data);
+        }
+        throw error;
+    }
 };
+
 
 
 app.get('/test-sheets', async (req, res) => {
