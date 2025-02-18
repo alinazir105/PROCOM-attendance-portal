@@ -21,31 +21,15 @@ let sheetNames = workbook.SheetNames;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
 // Set up Google Sheets API
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
-const SPREADSHEET_ID = '1T4SgPawsMWdUkD22SvGbOKUsPQTiQOsBockfhfg9TOU'; // Replace with your Google Sheet ID
-const CREDENTIALS_PATH = path.resolve(__dirname, 'attendance-portal-procom-4cbfede5d586.json'); // Path to your credentials JSON file
+const SPREADSHEET_ID = '1T4SgPawsMWdUkD22SvGbOKUsPQTiQOsBockfhfg9TOU';
 
-console.log("Checking credentials file...");
-if (!fs.existsSync(CREDENTIALS_PATH)) {
-    throw new Error(`Credentials file not found at: ${CREDENTIALS_PATH}`);
-}
-
-try {
-    const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
-    console.log("Credentials file loaded successfully");
-    // Check if required fields exist
-    if (!credentials.client_email || !credentials.private_key) {
-        throw new Error('Credentials file is missing required fields');
-    }
-} catch (error) {
-    console.error("Error loading credentials:", error);
-    process.exit(1);
-}
-
+// Initialize auth with environment variables
 const auth = new google.auth.GoogleAuth({
-  keyFile: CREDENTIALS_PATH,
-  scopes: SCOPES,
+    credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || '{}'),
+    scopes: SCOPES
 });
 
 const sheets = google.sheets({ version: 'v4', auth });
@@ -75,27 +59,27 @@ app.get('/participants', (req, res) => {
 app.post('/mark-attendance', async (req, res) => {
     const { competition, leader, team } = req.body;
     participants = participants.map((p) =>
-      p.team === team && p.competition === competition && p.leader === leader
-        ? { ...p, present: true }
-        : p
+        p.team === team && p.competition === competition && p.leader === leader
+            ? { ...p, present: true }
+            : p
     );
-  
+
     // Append to Google Sheets after updating the attendance
     const participant = participants.find(
-      (p) => p.team === team && p.competition === competition && p.leader === leader
+        (p) => p.team === team && p.competition === competition && p.leader === leader
     );
     if (participant) {
-      await appendToGoogleSheet(participant);
+        await appendToGoogleSheet(participant);
     }
-  
+
     res.json({ success: true });
-  });
-  
-  const appendToGoogleSheet = async (participant) => {
+});
+
+const appendToGoogleSheet = async (participant) => {
     try {
         // Add timestamp in a format Google Sheets can understand
         const timestamp = new Date().toISOString();
-        
+
         const requestParams = {
             spreadsheetId: SPREADSHEET_ID,
             range: 'Sheet1!A2:D',
@@ -114,14 +98,14 @@ app.post('/mark-attendance', async (req, res) => {
         };
 
         console.log("Attempting to append with data:", requestParams.requestBody.values[0]);
-        
+
         const response = await sheets.spreadsheets.values.append(requestParams);
-        
+
         if (response.data.updates) {
             console.log(`Successfully updated ${response.data.updates.updatedRows} rows`);
             return true;
         }
-        
+
         return false;
     } catch (error) {
         console.error('Error in appendToGoogleSheet:', error);
@@ -143,17 +127,17 @@ app.get('/test-sheets', async (req, res) => {
             spreadsheetId: SPREADSHEET_ID,
             range: 'Attendance-Sheet!A1:D1',
         });
-        
+
         console.log("Sheet response:", response.data);
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             headers: response.data.values[0],
             auth: "Successfully authenticated"
         });
     } catch (error) {
         console.error("Full error:", error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             error: error.message,
             details: error.response?.data || 'No additional details'
         });
